@@ -1,13 +1,13 @@
 ##### 1. hive执行过程
 
-1. 用户提交查询等任务给Driver。
-2. 编译器获得该用户的任务Plan。
-3. 编译器Compiler根据用户任务去MetaStore中获取需要的Hive的元数据信息。
-4. 编译器Compiler得到元数据信息，对任务进行编译，先将HiveQL转换为抽象语法树，然后将抽象语法树转换成查询块，将查询块转化为逻辑的查询计划，重写逻辑查询计划，将逻辑计划转化为物理的计划（MapReduce）, 最后选择最佳的策略。
-5. 将最终的计划提交给Driver。
+1. 用户提交查询等任务给Driver。
+2. 编译器获得该用户的任务Plan。
+3. 编译器Compiler根据用户任务去MetaStore中获取需要的Hive的元数据信息。
+4. 编译器Compiler得到元数据信息，对任务进行编译，先将HiveQL转换为抽象语法树，然后将抽象语法树转换成查询块，将查询块转化为逻辑的查询计划，重写逻辑查询计划，将逻辑计划转化为物理的计划（MapReduce）, 最后选择最佳的策略。
+5. 将最终的计划提交给Driver。
 6. Driver将计划Plan转交给ExecutionEngine去执行，获取元数据信息，提交给JobTracker或者SourceManager执行该任务，任务会直接读取HDFS中文件进行相应的操作。
-7. 获取执行的结果。
-8. 取得并返回执行结果
+7. 获取执行的结果。
+8. 取得并返回执行结果
 
 ##### 2. hive编译过程
 1. Antlr定义SQL的语法规则，完成SQL词法，语法解析，将SQL转化为抽象语法树AST Tree
@@ -22,6 +22,7 @@
 建表:
 * 内部表 create table a，数据加载过程时数据会被移动到hive的仓库中
 * 外部表 create external table，数据加载时数据被保存在location指定的位置，并不会被移动到hive的仓库中
+
 删除时:
 * 内部表 hdfs上的数据和元数据信息会被一起删除
 * 外部表 hdfs上的的数据信息不会被删除，只删除元素信息，实际数据信息存储再location指定的位置
@@ -44,8 +45,9 @@ Cluster By 和 Distribute By一般用在transform中较常使用。
 
 ##### 6. hive的metastore有什么作用
 
-hive的database，table等元数据信息都是通过metastore来访问的。
-客户端连接metastore服务，metastore再去连接MySQL数据库来存取元数据。有了metastore服务，就可以有多个客户端同时连接，而且这些客户端不需要知道MySQL数据库的用户名和密码，只需要连接metastore服务即可。
+* hive的database，table等元数据信息都是通过metastore来访问的。
+客户端连接metastore服务，metastore再去连接MySQL数据库来存取元数据。
+* 有了metastore服务，就可以有多个客户端同时连接，而且这些客户端不需要知道MySQL数据库的用户名和密码，只需要连接metastore服务即可。
 
 ##### 7. hive中join都有哪些
 
