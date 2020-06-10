@@ -53,4 +53,29 @@ Cluster By 和 Distribute By一般用在transform中较常使用。
 
 Hive中除了支持和传统数据库中一样的内关联（JOIN）、左关联（LEFT JOIN）、右关联（RIGHT JOIN）、全关联（FULL JOIN），还支持左半关联（LEFT SEMI JOIN）
 
-##### 8. Hive 中的压缩格式TextFile、SequenceFile、RCfile 、ORCfile各有什么区别？
+##### 8. left semi join是什么，怎么使用
+left semi join：作伴链接，相当于in条件句，以join的方式实现，不过select子句中只能有一个列，且会自动过滤，条件需要写道on子句中，不能写在where子句中。
+例如:`select user_id, user_name from tbl where user_id in (select t.user_id from t where login_date > '2020-01-01')`可以写成 `select user_id, user_name from tbl left semi join t on tbl.user_id = t.user_id and t.login_date > '2020-01-01'`
+
+##### 9. Hive 中的压缩格式TextFile、SequenceFile、RCfile 、ORCfile各有什么区别？
+
+* TextFile: 默认存储方式，行储存，数据不做压缩，磁盘开销大，数据解析开销大，压缩后无法分片，无法对数据进行并行操作。可以直接存储，加载数据的速度最高。
+* SquenceFile：二进制存储，行存储，以key-value的形式序列化到文件中。可以分片，可以压缩。
+* RCFile：一种行相结合的存储方式。数据按行分块，按列存储。同一行的数据位于同一节点，因此元组重构的开销很低，块内列存储，可以进行列维度的数据压缩，跳过不必要的列读取
+* ORC：列式存储，以二进制方式保存。是RCFile的改良版。
+> 1. ORCFile按行分为多个stripes，然后在每个stripe内数据以列为单位进行存储，所有列的内容保存在同一个文件中。每个stripe默认为250MB。
+> 2. ORC支持多种压缩(NONE, ZLIB, SNAPPY，默认为ZLIB)，并且可以切分.
+> 3. ORC可以支持复杂的数据结构(如map，struct，list)
+> 4. 并且提供了多种索引(row group index、bloom filter index)，使数据可以快速读取。
+
+##### 10. 所有的Hive任务都会有MapReduce的执行吗？
+不是，类似`select * from tbl where partition = patition1 limit n`的这种就不需要起MapReduce job，直接通过Fetch task获取数据。
+
+##### 11. Hive的函数：UDF、UDAF、UDTF的区别？
+* UDF(User Defined Function)：普通用户自定义函数，单行进，单行出。继承UDF或者GenericUDF，后者比前者可以处理复杂的数据类型，如Map、List、Struct。
+* UDAF(User Defined Aggregate Function)：用户自定义聚合函数，多行进，单行出。实现GenericUDAFEvaluator接口。
+* UDTF(User Defined Table-Generating Functions): 用户自定义表生成函数，单行进，多行出。继承GenericUDTF实现。
+
+##### 12. 说说对Hive分区和分桶的理解？
+* 分区：分区HDFS表现就是文件夹，是将数据按照数据特点进行区分，不同的文件夹中保存不同的数据，可以避免hive查询中扫描全部文件。比如常见的时间分区，不同时间分区下，保存不同时间点产生的数据。
+* 分桶：
