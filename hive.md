@@ -88,3 +88,10 @@ left semi join：作伴链接，相当于in条件句，以join的方式实现，
 > 4 .分桶插入数据时需要开启hive.enforce.bucketing属性；或者需要设置和分桶数相同的reducer的数量mapred.reduce.tasks，使用Distribute by … Sort by进行排序。
 
 ##### 13. hive有那些抽样方式?
+* 数据块抽样:
+   1. tablesample(n percent) 根据hive表数据的大小按比例抽取数据，不适用于所有的格式，这种抽样最小的单元时一个HDFS数据块，如果表大小小于数据块大小的话，就会返回所有行。可以通过`set hive.sample.seednumber=<INTEGER>;`从不同的数据块进行抽样。
+   2. tablesample(n M) 指定抽样数据的大小，单位为M；和 n percent采样有同样的限制。
+   3. tablesample(n rows) 指定抽样数据的行数，其中n代表每个map任务均取n行数据，map数量可通过hive表的简单查询语句确认
+* 分桶抽样：`TABLESAMPLE (BUCKET x OUT OF y [ON colname])`，利用分桶表，随机分到多个桶里，然后抽取指定的一个桶，如果已经分桶且on colname为cluster by的列，那么查询只会扫描对应桶中的数据。随机且速度快。
+* 随机抽样：利用rand()函数，进行抽样。比如`order by rand() limit n`或者`cluster by rand() limit n`或者`where rand() < float_num distribute by rand() sort by rand() limit n`
+
