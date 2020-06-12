@@ -95,3 +95,13 @@ left semi join：作伴链接，相当于in条件句，以join的方式实现，
 * 分桶抽样：`TABLESAMPLE (BUCKET x OUT OF y [ON colname])`，利用分桶表，随机分到多个桶里，然后抽取指定的一个桶，如果已经分桶且on colname为cluster by的列，那么查询只会扫描对应桶中的数据。随机且速度快。
 * 随机抽样：利用rand()函数，进行抽样。比如`order by rand() limit n`或者`cluster by rand() limit n`或者`where rand() < float_num distribute by rand() sort by rand() limit n`
 
+##### 14. 说一下hive的窗口函数
+
+##### 15. hive row_number，rank和dense_rank
+* row_number的排序是连续且不重复的，即使值相等，序号也不会相同。比如对A A B排序，序号依次为1，2，3
+* rank的排序是间断且重复的，值相等，则序号相同，但是重复几次，后面的序号就空出几个。比如对A A B排序，序号依次为1，1，3
+* dense_rank的排序是连续且重复的，值相等，则序号相同，后面的序号在前面的基础上加1。比如对A A B排序，序号依次为1，1，2
+
+
+##### 16. 描述数据中的null,在hive底层如何存储
+null在hive底层默认是用"\N"来存储的
