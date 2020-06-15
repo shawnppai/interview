@@ -96,6 +96,12 @@ left semi join：作伴链接，相当于in条件句，以join的方式实现，
 * 随机抽样：利用rand()函数，进行抽样。比如`order by rand() limit n`或者`cluster by rand() limit n`或者`where rand() < float_num distribute by rand() sort by rand() limit n`
 
 ##### 14. 说一下hive的窗口函数
+聚合函数是分组后，将多行的值聚集为一行，每组的结果只有一个。有时候既想要聚合前的数目，也想要聚合后的值，这便引入了窗口函数。
+窗口函数分析/序列函数 + over函数组成，over函数中函数中的分区、排序、指定窗口范围可组合使用也可以不指定。
+窗口函数在join，select，having之后执行
+* 分析函数：sum，avg，max，min，count
+* 序列函数：row_number，rank，dense_rank，ntile，lag，lead，first_value和last_value
+
 
 ##### 15. hive row_number，rank和dense_rank
 * row_number的排序是连续且不重复的，即使值相等，序号也不会相同。比如对A A B排序，序号依次为1，2，3
@@ -105,3 +111,45 @@ left semi join：作伴链接，相当于in条件句，以join的方式实现，
 
 ##### 16. 描述数据中的null,在hive底层如何存储
 null在hive底层默认是用"\N"来存储的
+
+##### 17. 了解hive server2吗？
+HS2是一个服务端接口，能够使远程客户端链接并执行查询操作并返回结果，目前的实现版本是基于thrift rpc调用，hiveserver2是hiveserver的改良版本，支持多客户端的并发和认证，能够更好的支持jdbc及odbc等开放的客户端api
+
+##### 18. 知道CBO吗？
+* RBO基于规则优化
+   * 谓词下推：将过滤数据的操作放在join之前，减小join的数据量
+   * 常量累加：将多个常量的值进行累加，得出结果替代原来的计算式，以减少计算量。如：x+2+1直接替换为x+3
+   * 列值裁剪：只扫描需要的列值，对所需要的列之外的列进行那个裁剪，减少网络和内存的消耗，提高扫描效率
+* CBO基于代价优化：评估SQL语法树每个节点的执行代价，然后将所以节点的代价累计，选出执行代价最小的一条路径。
+   1. 采集原始表的基本信息：输出数据大小，总条数，基本列信息等
+   2. 定义核心算子的基数推导规则： 在当前子节点统计信息的基础上，计算父节点相关统计信息的一条推导规则。
+   3. 核心算子实际代价计算：CPU COST和IO COST
+   4. 选择最优执行路径(代价最小执行路径)，动态规划
+
+##### 19. mapper，reducer数量由什么决定的？如何调整？
+* mapper的调节：mapper无法直接调节，但是可以设置分片的大小来间接的影响。
+   * `mapreduce.input.fileinputformat.split.minsize` 文件分片最小的有效字节数
+   * `mapreduce.input.fileinputformat.split.maxsize` 文件分片最大的有效字节数
+   * `dfs.blocksize` HDFS中文件块的大小
+
+   利用公式`splitSize = max(minimumSize, min(maximumSize, blockSize))`，可以通过改变上述三个参数来调节最终的分片大小。
+   > 需要注意点的是，在调节分片大小时，如果分片过小，会增加管理分片的总时间和构建map任务的总时间，则会增加 整个任务的执行时间。 同时分片大小也不应大于块大小，因为此时无法确保存储有该切片的多个数据块位于单个节点中，会增加执行map任务中的网络传输。 因此对于大多数作业来说，一个合理的分片大小趋向于HDFS的一个块的大小，默认是128MB
+
+* reducer的调节：可以通过设置`hive.exec.reducers.bytes.per.reducer`每个reducer处理的数据大小来间接影响数量，或者可以通过`set mapreduce.job.reduces=number`来设置reducer的数量。Reducer个数应该设置为0.95或者1.75乘以节点数与每个节点的容器数的乘积
+   > 当乘数为0.95时，map任务结束后所有的reduce将会立刻启动并开始转移数据， 此时队列中无等待任务，该设置适合reudce任务执行时间短或者reduce任务在个节点的执行时间相差不大的情况; 当乘数为1.75时，运行较快的节点将在完成第一轮reduce任务后，可以立即从队列中取出新的reduce任务执行， 由于该reduce个数设置方法减轻了单个reduce任务的负载，并且运行较快的节点将执行新的reduce任务而非空等执行较慢的节点，其拥有更好的负载均衡特性。
+
+##### 20. 什么情况下只有一个reducer
+* 用了Order by
+* 笛卡尔积
+* 数据量小于hive.exec.reducers.bytes.per.reducer参数值
+
+##### 21. shuffle的作用是什么？简单描述一下原理
+按照partition、key对map生成的中间结果进行排序合并，输出给reduce线程。
+* map端：map端输出首先写入一个环形内存缓存区，当达到一个百分比时，数据开始写入磁盘，形成溢出文件spill file，写入过程由另外的线程来执行，不影响缓存正常的缓存写入。 在写入磁盘之前，会按照partition、再按照key进行排序。 如果设置了combine操作，如果至少存在3个spill file文件，那么会再merge过程执行combine操作。 merge是对多个spill file文件进行合并，确保一个map task最终只生成一个中间文件数据。 决定数据写入那个partition的方法是，对key进行hash,再以reduce task数量取模，然后到指定的job
+* reduce端：map端完成后，会使用心跳机制通知master，master有map和主机的对应关系，reduce会定期询问master以获取map位置。reduce进程启动copy线程，通过HTTP方式请求map task输在的Task Tracker获取map task的输出文件。获取的会先放入内存缓存区中，达到一定的阈值后，开发时merge，把merge输出写到磁盘。该reduce的map输出全部拷贝完成后，开始进行合并操作，即磁盘到磁盘merge，merge进行合并排序
+
+##### 22. 列转行和行转列的函数分别有那些？
+* 列转行：collect_set，concat_ws，
+* 行转列：主要通过lateral view explode来实现
+
+##### 23. 数据倾斜的原因以及解决方法
