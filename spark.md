@@ -87,7 +87,7 @@ Worker 是指每个工作节点，启动的一个进程，负责管理本节点�
 Spark 选择记录更新的方式。但是，如果更新粒度太细太多，那么记录更新成本也不低。因此，RDD只支持粗粒度转换，即只记录单个块上执行的单个操作，然后将创建 RDD 的一系列变换序列（每个 RDD 都包含了他是如何由其他 RDD 变换过来的以及如何重建某一块数据的信息。因此 RDD 的容错机制又称血统容错）记录下来，以便恢复丢失的分区。lineage本质上很类似于数据库中的重做日志（Redo Log），只不过这个重做日志粒度很大，是对全局数据做同样的重做进而恢复数据。
 相比其他系统的细颗粒度的内存数据更新级别的备份或者 LOG 机制，RDD 的 lineage 记录的是粗颗粒度的特定数据 transformation 操作行为。当这个 RDD 的部分分区数据丢失时，它可以通过 lineage 获取足够的信息来重新运算和恢复丢失的数据分区。
 
-Spark checkpoint通过将RDD写入Disk作检查点，是Spark lineage容错的辅助，lineage过长会造成容错成本过高，这时在中间阶段做检查点容错，如果之后有节点出现问题而丢失分区，从做检查点的RDD开始重做Lineage，就会减少开销。
+Spark checkpoint通过将RDD写入Disk作检查点，是Spark lineage容错的辅助，lineage过长会造成容错成本过高，这时在中间阶段做检查点容错，如果之后有节点出现问题而丢失分区，从做检查点的RDD开始重做Lineage，就会减少开销。  
 　　checkpoint主要适用于以下两种情况：  
 　　1. DAG中的Lineage过长，如果重算，开销太大，如PageRank、ALS等。  
 　　2. 尤其适合在宽依赖上作checkpoint，这个时候就可以避免为Lineage重新计算而带来的冗余计算。
@@ -102,7 +102,7 @@ Spark checkpoint通过将RDD写入Disk作检查点，是Spark lineage容错的�
 * flatMap：对RDD每个元素转换，然后再扁平化，将所有的对象合并为一个对象，会抛弃值为null的值
 
 
-##### 14. epartition和Coalesce关系与区别
+##### 14. Repartition和Coalesce关系与区别
 * 关系：
 两者都是用来改变RDD的partition数量的，repartition底层调用的就是coalesce方法：coalesce(numPartitions, shuffle = true)
 * 区别：
