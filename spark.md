@@ -95,7 +95,13 @@ Spark checkpoint通过将RDD写入Disk作检查点，是Spark lineage容错的�
 ##### 12. 简述SparkSQL中RDD、DataFrame、DataSet三者的区别与联系?
 * RDD: 一个RDD就是你的数据的一个不可变的分布式元素集合，在集群中跨节点分布，可以通过若干提供了转换和处理的底层API进行并行处理。
 * DataFrame: DataFrame是一种以RDD为基础的分布式数据集，类似于传统数据库中的二维表格。DataFrame引入了schema。DataFrame的数据集都是按指定列存储，即结构化数据。类似于传统数据库中的表。
-* DataSet：
+* DataSet：dataset整合了rdd和dataframe的优点，支持结构化和非结构化数据。Dataset是一个强类型的特定领域的对象，这种对象可以函数式或者关系操作并行地转换
+
+联系与区别：
+* RDDs 适合非结构化数据的处理，而 DataFrame & DataSet 更适合结构化数据和半结构化的处理；
+* DataFrame & DataSet 可以通过统一的 Structured API 进行访问，而 RDDs 则更适合函数式编程的场景；
+* 相比于 DataFrame 而言，DataSet 是强类型的 (Typed)，有着更为严格的静态类型检查；
+* DataSets、DataFrames、SQL 的底层都依赖了 RDDs API，并对外提供结构化的访问接口
 
 ##### 13. map与flatMap的区别
 * map：对RDD每个元素转换，文件中的每一行数据返回一个数组对象
@@ -158,3 +164,14 @@ Spark的两个共享变量，累加器与广播变量，分别为结果聚合与
 ##### 19. spark性能优化
 [Spark性能优化指南——基础篇](https://tech.meituan.com/2016/04/29/spark-tuning-basic.html)  
 [Spark性能优化指南——高级篇](https://tech.meituan.com/2016/05/12/spark-tuning-pro.html)
+
+
+#### 20. 参数调优
+spark参数设置：
+1. num-executors：应用运行时executor的数量，推荐50-100左右比较合适
+2. executor-memory：应用运行时executor的内存，那么申请的内存量最好不要超过资源队列最大总内存的1/3~1/2，推荐4-8G比较合适
+3. executor-cores：应用运行时executor的CPU核数，推荐2-4个比较合适
+4. driver-memory：应用运行时driver的内存量，Driver的内存通常来说不设置，或者设置1G左右应该就够了，主要考虑如果使用map side join或者一些类似于collect的操作，那么要相应调大内存量
+5. spark.default.parallelism：每个stage默认的task数量，推荐参数为num-executors * executor-cores的2~3倍较为合适
+6. spark.storage.memoryFraction：每一个executor中用于RDD缓存的内存比例，如果程序中有大量的数据缓存，可以考虑调大整个的比例，默认为60%
+7. spark.shuffle.memoryFraction：每一个executor中用于Shuffle操作的内存比例，默认是20%，如果程序中有大量的Shuffle类算子，那么可以考虑其它的比例。
