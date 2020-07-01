@@ -155,5 +155,13 @@ RDD在Lineage依赖方面分为两种Narrow Dependencies与Wide Dependencies用�
 Spark的两个共享变量，累加器与广播变量，分别为结果聚合与广播这两种常见的通信模式突破了这一限制。
 
 ##### 19. spark性能优化
+* 开发调优
+1. 原则一：避免创建重复的RDD，尽可能复用同一个RDD
+2. 原则二：对多次使用的RDD进行持久化
+3. 原则三：尽量避免使用shuffle类算子
+4. 原则四：使用预聚合的shuffle操作
+5. 原则五：使用高性能的算子
+* 资源调优
+* 数据倾斜调优
 [Spark性能优化指南——基础篇](https://tech.meituan.com/2016/04/29/spark-tuning-basic.html)  
 [Spark性能优化指南——高级篇](https://tech.meituan.com/2016/05/12/spark-tuning-pro.html)
